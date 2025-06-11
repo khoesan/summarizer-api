@@ -1,19 +1,17 @@
 from fastapi import FastAPI, Request
-from pydantic import BaseModel
-import requests
+from transformers import pipeline
+import os
 
 app = FastAPI()
 
-API_URL = "https://api-inference.huggingface.co/models/khoesan/summarizer-t5"
-HF_TOKEN = "hf_YourAccessTokenHere"  # Buat di huggingface.co/settings/tokens
+summarizer = pipeline("summarization", model="khoesan/summarizer-t5")  # atau distilbart kalau crash
 
-headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-
-class InputText(BaseModel):
-    text: str
+@app.get("/")
+def root():
+    return {"message": "Summarizer API is running"}
 
 @app.post("/summarize")
-def summarize(input: InputText):
-    payload = {"inputs": input.text}
-    response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()
+async def summarize(request: Request):
+    data = await request.json()
+    summary = summarizer(data["text"])
+    return {"summary": summary[0]["summary_text"]}
