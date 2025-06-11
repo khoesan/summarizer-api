@@ -3,15 +3,19 @@ from transformers import pipeline
 import os
 
 app = FastAPI()
+summarizer = None
 
-summarizer = pipeline("summarization", model="khoesan/summarizer-t5")  # atau distilbart kalau crash
-
-@app.get("/")
-def root():
-    return {"message": "Summarizer API is running"}
+@app.on_event("startup")
+def load_model():
+    global summarizer
+    summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 
 @app.post("/summarize")
 async def summarize(request: Request):
+    global summarizer
+    if summarizer is None:
+        summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+    
     data = await request.json()
-    summary = summarizer(data["text"])
-    return {"summary": summary[0]["summary_text"]}
+    result = summarizer(data["text"])
+    return {"summary": result[0]["summary_text"]}
